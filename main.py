@@ -1835,7 +1835,7 @@ class ModerationBot(commands.Bot):
                     )
                     tracker = discord.Object(id=target["added_by"])
                     await channel.send(
-                        content=tracker.mention,
+                        content=f"<@{tracker.id}>",
                         view=notice,
                         allowed_mentions=discord.AllowedMentions(users=[tracker]),
                     )
@@ -2816,7 +2816,7 @@ async def raid_start(interaction: discord.Interaction, text: str):
             try:
                 recipient_ping = discord.Object(id=member.id)
                 await member.send(
-                    content=f"{recipient_ping.mention} {text}",
+                    content=f"<@{recipient_ping.id}> {text}",
                     allowed_mentions=discord.AllowedMentions(
                         users=[recipient_ping],
                         roles=False,
