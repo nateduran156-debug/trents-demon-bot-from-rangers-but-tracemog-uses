@@ -22,6 +22,18 @@ and Roblox game-server monitoring.
 - `/snipe add`, `/snipe remove`, `/snipe-channel`
 - `/kactivity`
 
+## Staff access
+
+Whitelisted staff can use `/groupcheck`, `/snipe add`, `/snipe remove`,
+`/raid-point add`, `/raid-point remove`, and `/ticket-close`. They can also
+use the individual strike commands: `/strike add`, `/strike status`,
+`/strike history`, `/strike proof`, `/strike expire`, `/strike boost-forgive`,
+`/strike3`, and `/revoke`. `/revokeall` and `/hb` are owner-only.
+
+Other operational and configuration commands, including `/raid-start`,
+`/kactivity`, `/raid-leaderboard`, `/rreset`, and whitelist management, are
+owner-only. Owners and founders retain staff command access.
+
 ## Configuration
 
 Set `DISCORD_TOKEN` and `FOUNDER_IDS`. `GUILD_ID` is optional; setting it makes

@@ -1334,7 +1334,7 @@ class WhitelistGroup(app_commands.Group):
         )
 
     @app_commands.command(name="list", description="List recognized staff members")
-    @staff_check()
+    @owner_check()
     async def list(self, interaction: discord.Interaction):
         with connect() as db:
             rows = db.execute(
@@ -1496,7 +1496,7 @@ class StrikeGroup(app_commands.Group):
 
     @app_commands.command(name="expire", description="Mark the latest active strike expired")
     @app_commands.describe(user="Member whose strike should expire")
-    @owner_check()
+    @staff_check()
     async def expire(self, interaction: discord.Interaction, user: discord.Member):
         assert interaction.guild is not None
         with connect() as db:
@@ -1530,7 +1530,7 @@ class StrikeGroup(app_commands.Group):
 
     @app_commands.command(name="boost-forgive", description="Forgive the latest strike through a boost benefit")
     @app_commands.describe(user="Member whose latest active strike should be forgiven")
-    @owner_check()
+    @staff_check()
     async def boost_forgive(
         self, interaction: discord.Interaction, user: discord.Member
     ):
@@ -1817,6 +1817,7 @@ class ModerationBot(commands.Bot):
                         f"https://www.roblox.com/games/start?placeId={place_id}"
                         f"&gameInstanceId={server_id}"
                     )
+                    tracker = discord.Object(id=target["added_by"])
                     try:
                         avatar_url = await fetch_roblox_avatar(
                             session, target["roblox_user_id"]
@@ -1825,7 +1826,7 @@ class ModerationBot(commands.Bot):
                         avatar_url = ""
                     notice = styled_view(
                         f"{target['roblox_username']} is in a game",
-                        f"[Join the exact server]({join_url})",
+                        f"<@{tracker.id}>\n[Join the exact server]({join_url})",
                         details=[
                             ("Experience", game_name),
                             ("Place ID", f"`{place_id}`"),
@@ -1833,12 +1834,16 @@ class ModerationBot(commands.Bot):
                         ],
                         thumbnail=avatar_url,
                     )
-                    tracker = discord.Object(id=target["added_by"])
                     await channel.send(
-                        content=f"<@{tracker.id}>",
                         view=notice,
                         allowed_mentions=discord.AllowedMentions(users=[tracker]),
                     )
+                except discord.HTTPException as error:
+                    print(
+                        f"Could not send snipe alert for guild "
+                        f"{target['guild_id']}: {error}"
+                    )
+                    continue
                 except (aiohttp.ClientError, asyncio.TimeoutError, KeyError):
                     continue
 
@@ -2280,7 +2285,7 @@ def parse_message_link(link: str) -> tuple[int, int, int] | None:
     role="Members with this role are checked",
     confirmation="Use CONFIRM to apply; any other value shows a preview",
 )
-@staff_check()
+@owner_check()
 async def kactivity(
     interaction: discord.Interaction,
     message_link: str,
@@ -2525,7 +2530,7 @@ async def groupcheck(interaction: discord.Interaction, roblox_username: str):
 
 @tree.command(name="hb", description="Hardban a member")
 @app_commands.describe(user="Member to hardban", reason="Reason for the hardban")
-@staff_check()
+@owner_check()
 async def hardban(
     interaction: discord.Interaction,
     user: discord.Member,
@@ -2722,7 +2727,7 @@ async def strike3(
 
 
 @tree.command(name="revokeall", description="Revoke every active strike in this server")
-@staff_check()
+@owner_check()
 async def revokeall(interaction: discord.Interaction):
     assert interaction.guild is not None
     with connect() as db:
@@ -2773,7 +2778,7 @@ async def snipe_channel(interaction: discord.Interaction, channel: discord.TextC
 
 @tree.command(name="raid-start", description="Send a server-wide raid announcement")
 @app_commands.describe(text="Plain-text message to DM to each member")
-@staff_check()
+@owner_check()
 async def raid_start(interaction: discord.Interaction, text: str):
     assert interaction.guild is not None
     text = text.strip()
@@ -2840,6 +2845,7 @@ async def raid_start(interaction: discord.Interaction, text: str):
 
 
 @tree.command(name="raid-leaderboard", description="Show the top raid point totals")
+@owner_check()
 async def raid_leaderboard(interaction: discord.Interaction):
     assert interaction.guild is not None
     message = await refresh_raid_leaderboard(
@@ -2864,7 +2870,7 @@ async def raid_leaderboard(interaction: discord.Interaction):
 
 
 @tree.command(name="rreset", description="Reset all raid leaderboard points")
-@staff_check()
+@owner_check()
 async def rreset(interaction: discord.Interaction):
     assert interaction.guild is not None
     with connect() as db:
