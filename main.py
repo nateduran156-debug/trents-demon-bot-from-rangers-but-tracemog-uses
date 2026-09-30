@@ -1833,7 +1833,12 @@ class ModerationBot(commands.Bot):
                         ],
                         thumbnail=avatar_url,
                     )
-                    await channel.send(view=notice)
+                    tracker = discord.Object(id=target["added_by"])
+                    await channel.send(
+                        content=tracker.mention,
+                        view=notice,
+                        allowed_mentions=discord.AllowedMentions(users=[tracker]),
+                    )
                 except (aiohttp.ClientError, asyncio.TimeoutError, KeyError):
                     continue
 
@@ -2046,9 +2051,6 @@ class TagManagerGroup(app_commands.Group):
         )
 
 
-tree.add_command(TagManagerGroup())
-
-
 async def fetch_tag_group_description() -> tuple[str, str, str]:
     try:
         async with aiohttp.ClientSession(
@@ -2252,6 +2254,10 @@ async def tagwipe(interaction: discord.Interaction, confirmation: str = "PREVIEW
 @owner_check()
 async def strip(interaction: discord.Interaction, confirmation: str = "PREVIEW"):
     await tagwipe_impl(interaction, confirmation)
+
+
+for removed_command in ("tag", "tag-manager", "tagwipe", "tag-wipe", "strip"):
+    tree.remove_command(removed_command)
 
 
 def parse_message_link(link: str) -> tuple[int, int, int] | None:
@@ -2766,15 +2772,30 @@ async def snipe_channel(interaction: discord.Interaction, channel: discord.TextC
 
 
 @tree.command(name="raid-start", description="Send a server-wide raid announcement")
-@app_commands.describe(text="Message to send to everyone")
+@app_commands.describe(text="Plain-text message to DM to each member")
 @staff_check()
 async def raid_start(interaction: discord.Interaction, text: str):
     assert interaction.guild is not None
+    text = text.strip()
+    if not text:
+        await interaction.response.send_message(
+            view=styled_view(
+                "Message required",
+                "Provide a message to send by direct message.",
+            ),
+            ephemeral=True,
+        )
+        return
+    if len(text) > 1900:
+        await interaction.response.send_message(
+            view=styled_view(
+                "Message too long",
+                "Keep the message to 1,900 characters or fewer so it fits in a direct message.",
+            ),
+            ephemeral=True,
+        )
+        return
     await interaction.response.defer(ephemeral=True)
-    announcement = styled_view(
-        "Raid announcement",
-        text,
-    )
     try:
         members = [
             member async for member in interaction.guild.fetch_members(limit=None)
@@ -2793,7 +2814,15 @@ async def raid_start(interaction: discord.Interaction, text: str):
         nonlocal delivered, failed
         async with semaphore:
             try:
-                await member.send(view=announcement)
+                await member.send(
+                    content=f"{member.mention}\n{text}",
+                    allowed_mentions=discord.AllowedMentions(
+                        users=[member],
+                        roles=False,
+                        everyone=False,
+                    ),
+                    suppress_embeds=True,
+                )
                 delivered += 1
             except (discord.Forbidden, discord.HTTPException):
                 failed += 1
@@ -2903,7 +2932,6 @@ async def ticket_close(interaction: discord.Interaction, reason: str = "Closed b
     top5th_role="Top 5th role; this role and every higher role are pinged for HR review",
     log_channel="Channel where moderation logs and ticket transcripts are sent",
     quarantine_role="Role applied to members joining during a detected raid spike",
-    member_role="Default Members role used by /strip and /tagwipe",
     raid_join_threshold="Joins inside the window that trigger the raid safeguard",
     raid_window_seconds="Length of the raid detection window",
 )
@@ -2918,7 +2946,6 @@ async def verification_config(
     top5th_role: discord.Role | None = None,
     log_channel: discord.TextChannel | None = None,
     quarantine_role: discord.Role | None = None,
-    member_role: discord.Role | None = None,
     raid_join_threshold: app_commands.Range[int, 2, 100] = 8,
     raid_window_seconds: app_commands.Range[int, 10, 300] = 30,
 ):
@@ -2963,11 +2990,6 @@ async def verification_config(
         interaction.guild.id,
         "quarantine_role_id",
         quarantine_role.id if quarantine_role else None,
-    )
-    set_config_value(
-        interaction.guild.id,
-        "member_role_id",
-        member_role.id if member_role else None,
     )
     set_config_value(interaction.guild.id, "raid_join_threshold", raid_join_threshold)
     set_config_value(interaction.guild.id, "raid_window_seconds", raid_window_seconds)
