@@ -51,8 +51,9 @@ same events are also kept in the local SQLite database. Configure a
 threshold is reached. The safeguard logs and quarantines; it does not
 automatically kick a raid wave.
 
-`/raid-start <text>` sends a plain-text direct message to every non-bot member
-and mentions the recipient. Members who have disabled server DMs may not
+`/raid-start <text>` sends a plain-text direct message to every non-bot member.
+Each message begins with a real mention of its recipient, followed by the
+provided text; no embed is sent. Members who have disabled server DMs may not
 receive it. `/kactivity` previews first, excludes boosters and protected staff,
 and requires `CONFIRM` before kicking.
 

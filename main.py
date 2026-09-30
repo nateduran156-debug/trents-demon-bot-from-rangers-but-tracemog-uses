@@ -2814,10 +2814,11 @@ async def raid_start(interaction: discord.Interaction, text: str):
         nonlocal delivered, failed
         async with semaphore:
             try:
+                recipient_ping = discord.Object(id=member.id)
                 await member.send(
-                    content=f"{member.mention}\n{text}",
+                    content=f"{recipient_ping.mention} {text}",
                     allowed_mentions=discord.AllowedMentions(
-                        users=[member],
+                        users=[recipient_ping],
                         roles=False,
                         everyone=False,
                     ),
